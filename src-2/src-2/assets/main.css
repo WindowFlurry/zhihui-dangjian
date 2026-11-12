@@ -1,0 +1,142 @@
+@import "./base.css";
+
+#app {
+  min-height: 100vh;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  font-weight: normal;
+  background-color: var(--color-background);
+}
+
+/* 页面容器样式 */
+.page-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* 顶部导航栏样式 */
+.nav-header {
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-red-dark) 100%);
+  color: var(--color-text-light);
+  padding: 15px 0;
+  box-shadow: var(--shadow-md);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.nav-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.nav-logo {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--color-text-light);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-menu {
+  display: flex;
+  gap: 20px;
+  list-style: none;
+}
+
+.nav-menu li a {
+  color: var(--color-text-light);
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: var(--border-radius);
+  transition: all 0.3s ease;
+}
+
+.nav-menu li a:hover,
+.nav-menu li a.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: var(--color-text-light);
+}
+
+/* 页面标题样式 */
+.page-title {
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--color-heading);
+  margin: 30px 0 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--color-border-accent);
+}
+
+/* 党建特色样式 */
+.party-decoration {
+  position: relative;
+}
+
+.party-decoration::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  background-color: var(--color-primary);
+  border-radius: 50%;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .nav-menu {
+    display: none;
+  }
+  
+  .page-container {
+    padding: 0 15px;
+  }
+  
+  .page-title {
+    font-size: 24px;
+  }
+}
+
+/* 页脚样式 */
+.footer {
+  background-color: var(--color-gray-800);
+  color: var(--color-text-light);
+  padding: 30px 0;
+  margin-top: 60px;
+}
+
+.footer-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-text {
+  font-size: 14px;
+  color: var(--c-gray-400);
+}
+
+.footer-links a {
+  color: var(--c-gray-400);
+  text-decoration: none;
+  margin-left: 20px;
+  font-size: 14px;
+}
+
+.footer-links a:hover {
+  color: var(--color-text-light);
+}

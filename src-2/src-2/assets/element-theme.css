@@ -1,0 +1,295 @@
+/* Element Plus 党建主题样式覆盖 */
+
+/* 1. 按钮样式 */
+.el-button--primary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.el-button--primary:hover,
+.el-button--primary:focus {
+  background-color: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+}
+
+.el-button--success {
+  background-color: var(--color-secondary) !important;
+  border-color: var(--color-secondary) !important;
+}
+
+.el-button--success:hover,
+.el-button--success:focus {
+  background-color: var(--color-secondary-hover) !important;
+  border-color: var(--color-secondary-hover) !important;
+}
+
+/* 2. 输入框样式 */
+.el-input__wrapper:focus-within {
+  box-shadow: 0 0 0 1px var(--color-primary) !important;
+}
+
+.el-input-group__append,
+.el-input-group__prepend {
+  background-color: var(--color-background-soft) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* 3. 卡片样式 */
+.el-card {
+  border-radius: var(--border-radius-lg) !important;
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.el-card__header {
+  border-bottom: 1px solid var(--color-border) !important;
+  padding: 18px 20px !important;
+  background-color: var(--color-background-soft) !important;
+}
+
+/* 4. 表格样式 */
+.el-table {
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--border-radius) !important;
+}
+
+.el-table th {
+  background-color: var(--color-background-soft) !important;
+  color: var(--color-heading) !important;
+  font-weight: 600 !important;
+}
+
+.el-table__row:hover > td {
+  background-color: var(--color-background-soft) !important;
+}
+
+.el-table__header-wrapper {
+  border-bottom: 1px solid var(--color-border) !important;
+}
+
+/* 5. 导航菜单样式 */
+.el-menu {
+  background-color: var(--color-background) !important;
+  border-right: 1px solid var(--color-border) !important;
+}
+
+.el-menu-item.is-active {
+  color: var(--color-primary) !important;
+  background-color: var(--color-primary-light) !important;
+}
+
+.el-sub-menu__title:hover,
+.el-menu-item:hover {
+  background-color: var(--color-background-soft) !important;
+}
+
+/* 6. 标签页样式 */
+.el-tabs__header {
+  margin-bottom: 20px !important;
+}
+
+.el-tabs__active-bar {
+  background-color: var(--color-primary) !important;
+}
+
+.el-tabs__item.is-active {
+  color: var(--color-primary) !important;
+}
+
+.el-tabs__item:hover {
+  color: var(--color-primary) !important;
+}
+
+/* 7. 对话框样式 */
+.el-dialog {
+  border-radius: var(--border-radius-lg) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.el-dialog__header {
+  background-color: var(--color-background-soft) !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  padding: 20px 25px !important;
+}
+
+.el-dialog__title {
+  color: var(--color-heading) !important;
+  font-weight: 600 !important;
+}
+
+/* 8. 分页器样式 */
+.el-pagination.is-background .el-pager li:not(.disabled):hover {
+  color: var(--color-primary) !important;
+}
+
+.el-pagination.is-background .el-pager li.is-active {
+  background-color: var(--color-primary) !important;
+  color: white !important;
+}
+
+/* 9. 复选框样式 */
+.el-checkbox__input.is-checked .el-checkbox__inner {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.el-checkbox__input.is-indeterminate .el-checkbox__inner {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+/* 10. 单选框样式 */
+.el-radio__input.is-checked .el-radio__inner {
+  border-color: var(--color-primary) !important;
+  background-color: var(--color-primary) !important;
+}
+
+/* 11. 开关样式 */
+.el-switch.is-checked .el-switch__core {
+  background-color: var(--color-primary) !important;
+}
+
+/* 12. 进度条样式 */
+.el-progress-bar__inner {
+  background-color: var(--color-primary) !important;
+}
+
+/* 13. 面包屑样式 */
+.el-breadcrumb__inner a:hover,
+.el-breadcrumb__inner.is-link:hover {
+  color: var(--color-primary) !important;
+}
+
+/* 14. 时间线样式 */
+.el-timeline-item__node--primary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.el-timeline-item__node--success {
+  background-color: var(--color-secondary) !important;
+  border-color: var(--color-secondary) !important;
+}
+
+/* 15. 步骤条样式 */
+.el-step__head.is-success {
+  color: var(--color-secondary) !important;
+  border-color: var(--color-secondary) !important;
+}
+
+.el-step__head.is-finish {
+  color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.el-step__title.is-success {
+  color: var(--color-secondary) !important;
+}
+
+.el-step__title.is-finish {
+  color: var(--color-primary) !important;
+}
+
+/* 16. 表单验证样式 */
+.el-form-item.is-error .el-input__wrapper,
+.el-form-item.is-error .el-textarea__inner {
+  box-shadow: 0 0 0 1px #f56c6c !important;
+}
+
+/* 17. 加载动画样式 */
+.el-loading-spinner .path {
+  stroke: var(--color-primary) !important;
+}
+
+/* 18. 提示框样式 */
+.el-message--success {
+  background-color: var(--color-secondary-light) !important;
+}
+
+.el-message--success .el-message__icon {
+  color: var(--color-secondary) !important;
+}
+
+.el-message--error {
+  background-color: var(--color-red-light) !important;
+}
+
+.el-message--error .el-message__icon {
+  color: var(--color-primary) !important;
+}
+
+/* 19. 徽章样式 */
+.el-badge__content {
+  background-color: var(--color-primary) !important;
+}
+
+/* 20. 滑块样式 */
+.el-slider__button {
+  border-color: var(--color-primary) !important;
+}
+
+.el-slider__button-wrapper:hover .el-slider__button {
+  border-color: var(--color-primary-hover) !important;
+}
+
+.el-slider__bar {
+  background-color: var(--color-primary) !important;
+}
+
+/* 21. 日历样式 */
+.el-calendar-table__row td.current:not(.disabled):hover {
+  background-color: var(--color-primary-light) !important;
+}
+
+.el-calendar-table__row td.today {
+  color: var(--color-primary) !important;
+}
+
+/* 22. 下拉菜单样式 */
+.el-dropdown-menu {
+  border: 1px solid var(--color-border) !important;
+  box-shadow: var(--shadow-md) !important;
+  border-radius: var(--border-radius) !important;
+}
+
+.el-dropdown-menu__item:hover {
+  background-color: var(--color-background-soft) !important;
+  color: var(--color-primary) !important;
+}
+
+/* 23. 骨架屏样式 */
+.el-skeleton__p,
+.el-skeleton__h,
+.el-skeleton__text {
+  background: linear-gradient(90deg, var(--color-gray-200) 25%, var(--color-gray-300) 50%, var(--color-gray-200) 75%) !important;
+}
+
+/* 24. 分割线样式 */
+.el-divider--horizontal {
+  margin: 20px 0 !important;
+}
+
+.el-divider__text {
+  color: var(--color-text-secondary) !important;
+  font-weight: 500 !important;
+}
+
+/* 25. 工具提示样式 */
+.el-tooltip__popper {
+  border-color: var(--color-border) !important;
+  box-shadow: var(--shadow) !important;
+  border-radius: var(--border-radius) !important;
+}
+
+/* 确保整体样式统一 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

@@ -1,0 +1,199 @@
+/* 党建主题配色方案 - 红金色调 */
+:root {
+  /* 红色系列 - 主色调 */
+  --c-red-primary: #c8102e;     /* 党红色，主色 */
+  --c-red-dark: #a0001c;        /* 深红，用于强调和交互状态 */
+  --c-red-light: #f9e4e8;       /* 浅红，用于背景和次要元素 */
+  --c-red-lighter: #fff7f8;     /* 更浅的红，用于边框和分隔线 */
+  
+  /* 金色系列 - 辅助色 */
+  --c-gold-primary: #d4af37;    /* 金色，辅助色 */
+  --c-gold-dark: #b8860b;       /* 深金色，用于强调 */
+  --c-gold-light: #f5f0d9;      /* 浅金色，用于背景 */
+  
+  /* 中性色 */
+  --c-white: #ffffff;
+  --c-gray-50: #f9f9f9;
+  --c-gray-100: #f0f0f0;
+  --c-gray-200: #e0e0e0;
+  --c-gray-300: #d0d0d0;
+  --c-gray-400: #b0b0b0;
+  --c-gray-500: #909090;
+  --c-gray-600: #707070;
+  --c-gray-700: #505050;
+  --c-gray-800: #303030;
+  --c-gray-900: #101010;
+  --c-black: #000000;
+  
+  /* 文本颜色 */
+  --c-text-primary: #303030;
+  --c-text-secondary: #505050;
+  --c-text-tertiary: #707070;
+  --c-text-light: #ffffff;
+  
+  /* 边框和分隔线 */
+  --c-border-light: #f0f0f0;
+  --c-border: #e0e0e0;
+  --c-border-dark: #d0d0d0;
+  
+  /* 阴影 */
+  --c-shadow-light: rgba(0, 0, 0, 0.05);
+  --c-shadow: rgba(0, 0, 0, 0.1);
+  --c-shadow-dark: rgba(0, 0, 0, 0.15);
+}
+
+/* 项目语义化颜色变量 */
+:root {
+  /* 背景颜色 */
+  --color-background: var(--c-white);
+  --color-background-soft: var(--c-red-lighter);
+  --color-background-mute: var(--c-gray-50);
+  --color-background-accent: var(--c-gold-light);
+  
+  /* 边框颜色 */
+  --color-border: var(--c-border-light);
+  --color-border-hover: var(--c-border);
+  --color-border-accent: var(--c-gold-primary);
+  
+  /* 文本颜色 */
+  --color-heading: var(--c-red-primary);
+  --color-text: var(--c-text-primary);
+  --color-text-secondary: var(--c-text-secondary);
+  --color-text-tertiary: var(--c-text-tertiary);
+  --color-text-light: var(--c-text-light);
+  
+  /* 主色调应用 */
+  --color-primary: var(--c-red-primary);
+  --color-primary-hover: var(--c-red-dark);
+  --color-primary-light: var(--c-red-light);
+  
+  /* 辅助色应用 */
+  --color-secondary: var(--c-gold-primary);
+  --color-secondary-hover: var(--c-gold-dark);
+  --color-secondary-light: var(--c-gold-light);
+  
+  /* 间距 */
+  --section-gap: 80px;
+  
+  /* 圆角 */
+  --border-radius: 4px;
+  --border-radius-lg: 8px;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 var(--c-shadow-light);
+  --shadow: 0 1px 3px 0 var(--c-shadow), 0 1px 2px 0 var(--c-shadow-light);
+  --shadow-md: 0 4px 6px -1px var(--c-shadow), 0 2px 4px -1px var(--c-shadow-light);
+  --shadow-lg: 0 10px 15px -3px var(--c-shadow-dark), 0 4px 6px -2px var(--c-shadow);
+}
+
+/* 移除暗色模式支持，党建主题主要使用亮色主题 */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  position: relative;
+  font-weight: normal;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--color-text);
+  background: var(--color-background);
+  line-height: 1.6;
+  /* 使用更适合党建主题的字体 */
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 15px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 党建主题风格指南 */
+/* 1. 标题样式 - 红色主题 */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-heading);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* 2. 按钮样式 - 主要使用红色和金色 */
+.btn-primary {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-secondary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+/* 3. 链接样式 */
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+/* 4. 卡片样式 */
+.card {
+  background-color: var(--color-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* 5. 分割线样式 */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+  margin: 20px 0;
+}
+
+/* 6. 强调文本 */
+.text-primary {
+  color: var(--color-primary);
+}
+
+.text-secondary {
+  color: var(--color-secondary);
+}
+
+.text-accent {
+  color: var(--color-primary);
+  font-weight: 600;
+}
