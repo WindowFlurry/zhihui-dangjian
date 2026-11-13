@@ -1,16 +1,33 @@
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElCollapse, ElCollapseItem, ElMenu, ElMenuItem, ElButton } from 'element-plus'
-import { ArrowRight, ArrowLeft, Edit, Setting, Upload, Paperclip, Document, User, HomeFilled, UserFilled } from '@element-plus/icons-vue'
-import * as agentApi from '../api/agent.js'
-import * as qaApi from '../api/qa.js'
+import { ElCollapse, ElCollapseItem, ElMenu, ElMenuItem, ElButton, ElDrawer } from 'element-plus'
+import { ArrowRight, ArrowLeft, Edit, Upload, Paperclip, Document, User, HomeFilled, UserFilled } from '@element-plus/icons-vue'
+import * as ragApi from '../api/rag.js'
 
 
 const router = useRouter()
 const userInfo = ref({
   name: '用户'
 })
+
+// 知识库运行状态（右侧面板展示）
+const kbStatus = ref({
+  status: 'loading',
+  documents: 0,
+  chunks: 0,
+  embedding_backend: '',
+  llm_configured: false,
+  llm_model: ''
+})
+
+// 欢迎页示例问题
+const exampleQuestions = [
+  '党员的义务有哪些？',
+  '党支部如何落实三会一课？',
+  '中国式现代化的本质要求是什么？',
+  '入党需要经过哪些程序？'
+]
 
 // 左侧历史对话面板收缩状态
 const isSidebarCollapsed = ref(false)
@@ -24,7 +41,7 @@ const toggleSidebar = () => {
 const initialWelcomeMessage = ref({
   id: 1,
   role: 'ai',
-  content: '你好，我是智慧党建助手，随时为您提供党建知识、政策解读和工作辅助服务',
+  content: '你好，我是智慧党建知识库助手。我会基于知识库中的党章党规、基层组织工作制度等资料回答问题，并标注引用出处。你也可以在右侧浏览知识库原文。',
   isWelcome: true
 })
 
@@ -39,7 +56,6 @@ const isInitialState = ref(true)
 // 引用对话消息容器元素
 const chatMessagesRef = ref(null)
 const inputMessage = ref('')
-const agentMode = ref(false)
 const conversationHistory = ref([
   {
     id: 1,
@@ -62,36 +78,61 @@ const togglePanel = () => {
   localStorage.setItem('panelCollapsed', isPanelCollapsed.value.toString())
 }
 
-// 回调链接信息
-const callbackLinks = ref([
-  {
-    id: 1,
-    url: 'http://110.42.60.168:8888/api/callback/abc123xyz',
-    timestamp: '2025-03-20 14:30:00',
-    status: '有效',
-    statusClass: 'status-valid'
-  },
-  {
-    id: 2,
-    url: 'http://110.42.60.168:8888/api/callback/def456uvw',
-    timestamp: '2025-03-19 10:15:00',
-    status: '已过期',
-    statusClass: 'status-expired'
-  }
-])
-
-// 复制链接到剪贴板
-const copyLink = (url) => {
-  navigator.clipboard.writeText(url).then(() => {
-    alert('链接已复制到剪贴板')
-  }).catch(err => {
-    console.error('复制失败:', err)
-  })
-}
-
 // 移除AI生成文件相关引用
 
-// 在组件挂载时获取用户信息和面板状态
+// 知识库文档浏览
+const kbDocuments = ref([])
+const docDrawerVisible = ref(false)
+const activeDoc = ref(null)
+const docLoading = ref(false)
+const docBodyRef = ref(null)
+
+const docLines = computed(() =>
+  activeDoc.value?.content ? activeDoc.value.content.split('\n') : []
+)
+const docHeadingLines = computed(
+  () => new Set((activeDoc.value?.outline || []).map(item => item.line))
+)
+
+const loadDocuments = () => {
+  ragApi.getFiles()
+    .then(res => {
+      kbDocuments.value = res.files || []
+    })
+    .catch(error => {
+      console.error('知识库文档列表加载失败:', error)
+    })
+}
+
+const openDocument = async (docId, section = '') => {
+  if (!docId) return
+  docDrawerVisible.value = true
+  docLoading.value = true
+  activeDoc.value = null
+  try {
+    activeDoc.value = await ragApi.getDocument(docId)
+    docLoading.value = false
+    await nextTick()
+    if (section) {
+      const outline = activeDoc.value?.outline || []
+      const hit = outline.find(item => item.title === section)
+        || outline.find(item => item.title.includes(section) || section.includes(item.title))
+      if (hit) scrollToDocLine(hit.line)
+    }
+  } catch (error) {
+    console.error('文档加载失败:', error)
+    activeDoc.value = { title: '文档加载失败', content: error.message, outline: [], source: null }
+  } finally {
+    docLoading.value = false
+  }
+}
+
+const scrollToDocLine = (line) => {
+  const el = docBodyRef.value?.querySelector(`#doc-line-${line}`)
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+// 从组件挂载时获取用户信息和面板状态
 onMounted(() => {
   // 从localStorage中获取用户名
   const account = localStorage.getItem('account') || localStorage.getItem('phoneNumber')
@@ -104,6 +145,17 @@ onMounted(() => {
   if (savedPanelState !== null) {
     isPanelCollapsed.value = savedPanelState === 'true'
   }
+
+  // 读取知识库状态；后端未启动时不影响页面使用
+  ragApi.getHealth()
+    .then(status => {
+      kbStatus.value = status
+    })
+    .catch(error => {
+      console.error('知识库服务连接失败:', error)
+      kbStatus.value = { ...kbStatus.value, status: 'error' }
+    })
+  loadDocuments()
 })
 
 // 切换到个人首页
@@ -122,7 +174,7 @@ const goToKnowledgeBaseHome = () => {
     fadeIn: 500,    // 消息进入动画持续时间
     fadeOut: 300,   // 消息淡出动画持续时间
     transition: 300, // 过渡状态持续时间
-    typeSpeed: 40   // 伪流式输出打字速度（毫秒/字）
+    typeSpeed: 4    // 伪流式输出打字速度（毫秒/字）
   }
   
   const sendMessage = async () => {
@@ -204,7 +256,7 @@ const goToKnowledgeBaseHome = () => {
   }
   
   // 统一处理响应消息的函数
-  const handleResponse = (processingMessage, content, isError = false) => {
+  const handleResponse = (processingMessage, content, isError = false, sources = []) => {
     // 找到处理中消息并添加淡出效果
     const processingMsg = messages.value.find(msg => msg.id === processingMessage.id)
     if (processingMsg) {
@@ -225,6 +277,7 @@ const goToKnowledgeBaseHome = () => {
           role: 'ai',
           content: '', // 初始为空，用于伪流式输出
           fullContent: String(content), // 存储完整内容
+          sources: Array.isArray(sources) ? sources : [],
           isError: isError,
           entering: true, // 添加进入动画标志
           error: isError // 添加error类用于CSS样式选择
@@ -236,6 +289,12 @@ const goToKnowledgeBaseHome = () => {
         
         // 使用nextTick确保DOM更新后再处理动画
         nextTick(() => {
+          // 新回答从顶部开始展示，避免长回答一路滚到底、看不到开头
+          const responseEl = chatMessagesRef.value?.querySelector(`[data-message-id="${responseMessage.id}"]`)
+          if (responseEl) {
+            responseEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+
           // DOM更新后移除进入标志
           setTimeout(() => {
             const msg = messages.value.find(m => m.id === responseMessage.id)
@@ -247,8 +306,6 @@ const goToKnowledgeBaseHome = () => {
                 if (index < msg.fullContent.length) {
                   msg.content += msg.fullContent.charAt(index)
                   index++
-                  // 每添加一个字符就滚动到底部
-                  scrollToBottom()
                 } else {
                   clearInterval(typeInterval)
                 }
@@ -287,29 +344,21 @@ const goToKnowledgeBaseHome = () => {
     })
 
     try {
-      let response
-      if (agentMode.value) {
-        // 使用代理模式发送请求
-        response = await agentApi.agentChat({
-          content: userMessage.content,
-          conversation_id: currentConversationId.value
-        })
-        
-        // 处理响应
-        handleResponse(processingMessage, response.data?.output || response.output || '处理成功，但未获取到具体内容')
-      } else {
-        // 使用普通问答模式
-        // 获取当前会话ID
-        const sessionId = sessionStorage.getItem('session_id') || '';
-        const content = await qaApi.askQuestion(userMessage.content, sessionId);
-        
-        // 处理响应
-        handleResponse(processingMessage, content.answer || '处理成功，但未获取到具体内容');
-        
-        // 更新会话ID
-        if (content.session_id) {
-          sessionStorage.setItem('session_id', content.session_id);
-        }
+      // 使用 RAG 知识库问答
+      const sessionId = sessionStorage.getItem('session_id') || ''
+      const result = await ragApi.askQuestion(userMessage.content, sessionId)
+
+      // 处理响应：答案 + 引用来源
+      handleResponse(
+        processingMessage,
+        result.answer || '处理成功，但未获取到具体内容',
+        false,
+        result.sources || []
+      )
+
+      // 更新会话ID
+      if (result.session_id) {
+        sessionStorage.setItem('session_id', result.session_id)
       }
     } catch (error) {
       console.error('发送消息时出错:', error)
@@ -319,9 +368,10 @@ const goToKnowledgeBaseHome = () => {
     }
   }
 
-// 切换Agent模式
-const toggleAgentMode = () => {
-  agentMode.value = !agentMode.value
+// 点击示例问题直接发送
+const askExample = (question) => {
+  inputMessage.value = question
+  sendMessage()
 }
 
 // 打开文件选择器
@@ -360,8 +410,13 @@ const handleFileSelect = async (event) => {
   })
   
   try {
-    // 使用智能问答的上传文件接口
-    const response = await qaApi.uploadFile(file)
+    // 上传到 RAG 知识库并增量入库
+    const response = await ragApi.uploadFile(file)
+    if (!response.success) {
+      throw new Error(response.message || '上传入库失败')
+    }
+    const chunkCount = response.chunks ?? 0
+    const docTitle = response.title || file.name
     
     // 找到上传中消息并添加淡出效果
     const uploadingMsg = messages.value.find(msg => msg.isUploading)
@@ -377,19 +432,23 @@ const handleFileSelect = async (event) => {
         const successMessage = {
           id: Date.now() + 1,
           role: 'user',
-          content: `已上传文件: ${file.name}`,
+          content: `已上传文件: ${file.name}（新增 ${chunkCount} 个知识片段）`,
           entering: true // 添加进入动画标志
         }
         messages.value.push(successMessage)
-        
+
         // 添加AI响应
         const aiResponseMessage = {
           id: Date.now() + 2,
           role: 'ai',
-          content: `文件上传成功！我已经可以基于这个文件回答你的问题了。请输入你关于这个文件的问题。`,
+          content: `《${docTitle}》已加入知识库，共切分为 ${chunkCount} 个片段。现在可以直接提问，回答会标注该文件的引用位置。`,
           entering: true // 添加进入动画标志
         }
         messages.value.push(aiResponseMessage)
+
+        // 刷新知识库状态与文档列表
+        ragApi.getHealth().then(status => { kbStatus.value = status }).catch(() => {})
+        loadDocuments()
         
         // 滚动到底部
         scrollToBottom()
@@ -597,18 +656,47 @@ const scrollToBottom = () => {
       <!-- 中间对话区域 -->
       <section class="chat-area" :class="{ 'initial-state': isInitialState }">
         <div class="chat-messages" ref="chatMessagesRef">
-            <div 
-              v-for="message in messages" 
-              :key="message.id" 
-              class="message" 
+            <div
+              v-for="message in messages"
+              :key="message.id"
+              class="message"
               :class="[message.role, message.entering ? 'entering' : '', message.fadingOut ? 'fading-out' : '', message.error ? 'error' : '']"
+              :data-message-id="message.id"
             >
               <div v-if="!message.isWelcome" class="message-avatar">{{ message.role === 'ai' ? 'AI' : '我' }}</div>
-              <div 
-                class="message-content" 
-                :data-is-welcome="message.isWelcome"
-              >
-                {{ message.content }}
+              <div class="message-body">
+                <div
+                  class="message-content"
+                  :data-is-welcome="message.isWelcome"
+                >{{ message.content }}</div>
+
+                <!-- 知识库引用依据：回答输出完成后展示 -->
+                <div
+                  v-if="message.role === 'ai' && message.sources && message.sources.length && message.content === message.fullContent"
+                  class="message-sources"
+                >
+                  <div class="sources-header">
+                    <span class="sources-title">参考依据</span>
+                    <span class="sources-count">{{ message.sources.length }} 条</span>
+                  </div>
+                  <div
+                    v-for="source in message.sources"
+                    :key="source.index"
+                    class="source-item"
+                    :class="{ 'clickable': source.doc_id }"
+                    @click="source.doc_id && openDocument(source.doc_id, source.section)"
+                  >
+                    <div class="source-index">[{{ source.index }}]</div>
+                    <div class="source-body">
+                      <div class="source-meta">
+                        <span class="source-doc">《{{ source.title }}》</span>
+                        <span v-if="source.section" class="source-section">{{ source.section }}</span>
+                      </div>
+                      <div class="source-snippet">{{ source.snippet }}</div>
+                      <div v-if="source.doc_id" class="source-open-hint">查看原文 →</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -622,6 +710,18 @@ const scrollToBottom = () => {
               'right-panel-expanded': !isInitialState && !isPanelCollapsed
             }"
           >
+            <!-- 示例问题 -->
+            <div v-if="isInitialState" class="example-questions">
+              <button
+                v-for="question in exampleQuestions"
+                :key="question"
+                class="example-chip"
+                @click="askExample(question)"
+              >
+                {{ question }}
+              </button>
+            </div>
+
             <!-- 输入区域 -->
             <div class="input-area">
               <textarea
@@ -643,18 +743,11 @@ const scrollToBottom = () => {
             <!-- 按钮区域 -->
             <div class="buttons-area">
             <div class="function-buttons">
-              <el-button 
-                :type="agentMode ? 'primary' : 'default'"
-                @click="toggleAgentMode"
-                size="default"
-                class="agent-button"
-              >
-                <template #icon>
-                  <Setting />
-                </template>
-                agent
-              </el-button>
-              <el-button 
+              <div class="rag-mode-badge">
+                <span class="rag-dot"></span>
+                知识库问答
+              </div>
+              <el-button
                 type="default"
                 @click="uploadFile"
                 size="default"
@@ -663,7 +756,7 @@ const scrollToBottom = () => {
                 <template #icon>
                   <Upload />
                 </template>
-                文件上传
+                上传文档
               </el-button>
             </div>
             <div class="send-button-container">
@@ -701,36 +794,120 @@ const scrollToBottom = () => {
         </div>
         
         <div v-if="!isPanelCollapsed" class="info-content">
-          <p class="welcome-text">欢迎使用智慧党建AI助手</p>
+          <p class="welcome-text">基于本地知识库检索，回答附带原文出处</p>
 
-          <!-- 回调链接信息模块 -->
-        <div class="callback-links-module">
-          <h3>回调链接信息</h3>
-          <div class="links-container">
-            <div v-for="link in callbackLinks" :key="link.id" class="link-item">
-              <div class="link-header">
-                <div class="link-title">回调链接 #{{ link.id }}</div>
-                <div :class="['link-status', link.statusClass]">{{ link.status }}</div>
+          <!-- 知识库运行状态 -->
+          <div class="kb-status-module">
+            <h3>知识库状态</h3>
+            <div class="kb-metrics">
+              <div class="kb-metric">
+                <span class="kb-num">{{ kbStatus.documents }}</span>
+                <span class="kb-label">篇文档</span>
               </div>
-              <div class="link-url">
-                <span class="url-text">{{ link.url }}</span>
-                <button class="copy-button" @click="copyLink(link.url)" title="复制链接">复制</button>
-              </div>
-              <div class="link-meta">
-                <span class="meta-item">生成时间: {{ link.timestamp }}</span>
+              <div class="kb-metric">
+                <span class="kb-num">{{ kbStatus.chunks }}</span>
+                <span class="kb-label">个片段</span>
               </div>
             </div>
-            <div v-if="callbackLinks.length === 0" class="no-links">
-              当前没有回调链接
+            <div class="kb-row">
+              <span>服务</span>
+              <b :class="['kb-value', kbStatus.status === 'ok' ? 'ok' : 'bad']">
+                {{ kbStatus.status === 'ok' ? '正常' : (kbStatus.status === 'loading' ? '连接中…' : '未连接') }}
+              </b>
+            </div>
+            <div class="kb-row">
+              <span>向量模型</span>
+              <b class="kb-value">{{ kbStatus.embedding_backend || '—' }}</b>
+            </div>
+            <div class="kb-row">
+              <span>回答模型</span>
+              <b class="kb-value">{{ kbStatus.llm_configured ? kbStatus.llm_model : '未配置 Key' }}</b>
+            </div>
+            <div v-if="!kbStatus.llm_configured" class="kb-note">
+              当前为检索预览模式；在 backend/.env 配置 API Key 后可生成完整回答。
+            </div>
+            <div v-if="kbStatus.status === 'error'" class="kb-note bad">
+              后端未启动：请在 rag-demo/backend 运行 uvicorn。
             </div>
           </div>
-        </div>
+
+          <!-- 知识库文档列表 -->
+          <div class="kb-docs-module">
+            <div class="kb-docs-header">
+              <h3>知识库文档</h3>
+              <button class="kb-docs-refresh" @click="loadDocuments">刷新</button>
+            </div>
+            <div v-if="!kbDocuments.length" class="kb-docs-empty">暂无文档，或后端未启动</div>
+            <ul v-else class="kb-doc-list">
+              <li
+                v-for="doc in kbDocuments"
+                :key="doc.doc_id"
+                class="kb-doc-item"
+                @click="openDocument(doc.doc_id)"
+              >
+                <div class="kb-doc-title">{{ doc.title }}</div>
+                <div class="kb-doc-meta">
+                  {{ doc.chunks }} 个片段 · {{ doc.chars }} 字
+                  <span v-if="doc.uploaded"> · 已上传</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 使用提示 -->
+          <div class="kb-usage">
+            <h3>可以这样问</h3>
+            <p>党员的义务有哪些？</p>
+            <p>党支部如何落实三会一课？</p>
+            <p>中国式现代化的本质要求是什么？</p>
+            <p>入党需要经过哪些程序？</p>
+          </div>
         </div>
         
         <!-- AI生成文件区域已移除 -->
       </aside>
     </main>
 
+    <!-- 知识库文档阅读器 -->
+    <el-drawer
+      v-model="docDrawerVisible"
+      :title="activeDoc?.title || '知识库文档'"
+      size="720px"
+      class="doc-drawer"
+      destroy-on-close
+    >
+      <div v-if="docLoading" class="doc-loading">正在加载文档…</div>
+      <div v-else-if="activeDoc" class="doc-reader">
+        <div class="doc-meta-bar">
+          <span>{{ activeDoc.chars }} 字 · {{ activeDoc.chunks }} 个片段</span>
+          <span v-if="activeDoc.source?.publisher">{{ activeDoc.source.publisher }}</span>
+          <a
+            v-if="activeDoc.source?.url"
+            :href="activeDoc.source.url"
+            target="_blank"
+            rel="noopener noreferrer"
+          >查看原文 ↗</a>
+        </div>
+        <div v-if="activeDoc.outline?.length" class="doc-outline">
+          <button
+            v-for="item in activeDoc.outline"
+            :key="item.line"
+            class="doc-outline-item"
+            @click="scrollToDocLine(item.line)"
+          >{{ item.title }}</button>
+        </div>
+        <div ref="docBodyRef" class="doc-body">
+          <template v-for="(line, i) in docLines" :key="i">
+            <h4
+              v-if="docHeadingLines.has(i)"
+              :id="`doc-line-${i}`"
+              class="doc-heading"
+            >{{ line }}</h4>
+            <p v-else-if="line.trim()" class="doc-para">{{ line }}</p>
+          </template>
+        </div>
+      </div>
+    </el-drawer>
 
   </div>
 </template>
@@ -1258,6 +1435,7 @@ const scrollToBottom = () => {
   background-color: white;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   word-break: break-word;
+  white-space: pre-wrap;
   line-height: 1.6;
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: background-color, box-shadow, border-color;
@@ -2434,5 +2612,447 @@ const scrollToBottom = () => {
 .personal-home-button:active {
   transform: translateY(0);
   box-shadow: 0 2px 6px rgba(231, 76, 60, 0.3);
+}
+
+/* ================= RAG 知识库问答新增样式 ================= */
+
+/* 消息内容 + 引用来源的纵向容器 */
+.message-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.message.ai .message-body {
+  flex: 1;
+}
+
+/* 引用依据卡片 */
+.message-sources {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background-color: #ffffff;
+  border: 1px solid var(--color-border-light);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.sources-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.sources-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 0.5px;
+}
+
+.sources-count {
+  font-size: 11px;
+  color: #999;
+}
+
+.source-item {
+  display: flex;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px dashed #eeeeee;
+}
+
+.source-item:first-of-type {
+  border-top: none;
+  padding-top: 2px;
+}
+
+.source-item.clickable {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.source-item.clickable:hover {
+  background-color: #fff7f7;
+}
+
+.source-open-hint {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--color-primary);
+  opacity: 0.75;
+}
+
+.source-index {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.source-body {
+  min-width: 0;
+}
+
+.source-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.source-doc {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333333;
+}
+
+.source-section {
+  padding: 1px 6px;
+  font-size: 11px;
+  color: #8a6d3b;
+  background-color: #fdf6e3;
+  border: 1px solid #f0e0b8;
+  border-radius: 8px;
+}
+
+.source-snippet {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #666666;
+  white-space: pre-wrap;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* 欢迎页示例问题 */
+.example-questions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 16px 12px;
+  box-sizing: border-box;
+}
+
+.example-chip {
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--color-primary);
+  background-color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(200, 16, 46, 0.25);
+  border-radius: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.example-chip:hover {
+  color: #ffffff;
+  background-color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(200, 16, 46, 0.2);
+}
+
+/* 知识库模式标识 */
+.rag-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3f8f2f;
+  background-color: #f0f9eb;
+  border: 1px solid #c2e7b0;
+  border-radius: 18px;
+}
+
+.rag-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #52c41a;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(82, 196, 26, 0.15);
+}
+
+/* 右侧知识库状态面板 */
+.kb-status-module,
+.kb-usage {
+  padding: 14px;
+  margin-bottom: 18px;
+  background-color: #ffffff;
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.kb-status-module h3,
+.kb-usage h3 {
+  margin: 0 0 12px;
+  padding-left: 8px;
+  font-size: 14px;
+  color: var(--color-primary);
+  border-left: 3px solid var(--color-primary);
+}
+
+.kb-metrics {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.kb-metric {
+  flex: 1;
+  padding: 10px 6px;
+  text-align: center;
+  background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+  border: 1px solid #f3d6d6;
+  border-radius: 8px;
+}
+
+.kb-num {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-primary);
+}
+
+.kb-label {
+  font-size: 11px;
+  color: #888888;
+}
+
+.kb-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 0;
+  font-size: 12px;
+  color: #777777;
+  border-top: 1px dashed #eeeeee;
+}
+
+.kb-value {
+  font-weight: 600;
+  color: #333333;
+  text-align: right;
+  word-break: break-all;
+}
+
+.kb-value.ok {
+  color: #2e9e44;
+}
+
+.kb-value.bad {
+  color: #c0392b;
+}
+
+.kb-note {
+  margin-top: 10px;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #a06a00;
+  background-color: #fff8e1;
+  border-radius: 6px;
+}
+
+.kb-note.bad {
+  color: #c0392b;
+  background-color: #fff1f0;
+}
+
+.kb-usage p {
+  margin: 0 0 7px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #666666;
+}
+
+/* 知识库文档列表 */
+.kb-docs-module {
+  padding: 14px;
+  margin-bottom: 18px;
+  background-color: #ffffff;
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.kb-docs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.kb-docs-header h3 {
+  margin: 0;
+  padding-left: 8px;
+  font-size: 14px;
+  color: var(--color-primary);
+  border-left: 3px solid var(--color-primary);
+}
+
+.kb-docs-refresh {
+  padding: 0;
+  font-size: 11px;
+  color: #999999;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.kb-docs-refresh:hover {
+  color: var(--color-primary);
+}
+
+.kb-docs-empty {
+  font-size: 12px;
+  color: #999999;
+}
+
+.kb-doc-list {
+  max-height: 230px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) var(--color-background-secondary);
+}
+
+.kb-doc-item {
+  padding: 8px 6px;
+  border-top: 1px dashed #eeeeee;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.kb-doc-item:first-child {
+  border-top: none;
+}
+
+.kb-doc-item:hover {
+  background-color: #fff7f7;
+}
+
+.kb-doc-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #333333;
+}
+
+.kb-doc-meta {
+  margin-top: 3px;
+  font-size: 11px;
+  color: #999999;
+}
+
+/* 文档阅读器（Drawer 被 teleport 到 body，容器样式需要 :global） */
+:global(.doc-drawer .el-drawer__body) {
+  display: flex;
+  padding: 0 24px 20px;
+  overflow: hidden;
+}
+
+.doc-reader {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+}
+
+.doc-loading {
+  padding: 48px 0;
+  font-size: 13px;
+  color: #999999;
+  text-align: center;
+}
+
+.doc-meta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 6px 0 12px;
+  font-size: 12px;
+  color: #888888;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.doc-meta-bar a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.doc-meta-bar a:hover {
+  text-decoration: underline;
+}
+
+.doc-outline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 118px;
+  padding: 10px 0;
+  overflow-y: auto;
+  border-bottom: 1px solid #eeeeee;
+  scrollbar-width: thin;
+}
+
+.doc-outline-item {
+  padding: 3px 9px;
+  font-size: 11px;
+  color: #a53a3a;
+  background-color: #fff8f8;
+  border: 1px solid #f0d2d2;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.doc-outline-item:hover {
+  color: #ffffff;
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.doc-body {
+  flex: 1;
+  min-height: 0;
+  padding: 16px 4px 24px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.doc-heading {
+  margin: 18px 0 8px;
+  font-size: 15px;
+  color: var(--color-primary);
+  scroll-margin-top: 10px;
+}
+
+.doc-heading:first-child {
+  margin-top: 0;
+}
+
+.doc-para {
+  margin: 0 0 9px;
+  font-size: 14px;
+  line-height: 1.9;
+  color: #333333;
+  text-align: justify;
 }
 </style>

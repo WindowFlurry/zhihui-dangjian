@@ -1,0 +1,6 @@
+backend/.env
+backend/data/
+backend/corpus/uploads/
+backend/__pycache__/
+**/__pycache__/
+*.pyc
